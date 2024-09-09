@@ -1,0 +1,192 @@
+﻿<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Regresión Lineal 3D con Descenso de Gradiente</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        h1 {
+            text-align: center;
+        }
+        .canvas-container {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 20px;
+        }
+        canvas {
+            border: 1px solid #ccc;
+        }
+        .controls {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+        }
+        input[type="number"] {
+            width: 100%;
+            padding: 5px;
+        }
+        button {
+            width: 100%;
+            padding: 10px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .results {
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Regresión Lineal 3D con Descenso de Gradiente</h1>
+    <div class="canvas-container">
+        <canvas id="canvas2d" width="400" height="400"></canvas>
+        <canvas id="canvas3d" width="400" height="400"></canvas>
+    </div>
+    <div class="controls">
+        <div>
+            <label for="learningRate">Tasa de aprendizaje:</label>
+            <input type="number" id="learningRate" value="0.01" step="0.001" min="0.001" max="1">
+        </div>
+        <div>
+            <label for="iterations">Iteraciones:</label>
+            <input type="number" id="iterations" value="100" min="1" max="1000">
+        </div>
+    </div>
+    <button id="runButton">Ejecutar Descenso de Gradiente</button>
+    <div class="results">
+        <p>Pendiente (m): <span id="slope"></span></p>
+        <p>Intersección (b): <span id="intercept"></span></p>
+        <p>Ecuación de la línea: y = <span id="equation"></span></p>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script>
+        const canvas2d = document.getElementById('canvas2d');
+        const ctx = canvas2d.getContext('2d');
+        const canvas3d = document.getElementById('canvas3d');
+        const learningRateInput = document.getElementById('learningRate');
+        const iterationsInput = document.getElementById('iterations');
+        const runButton = document.getElementById('runButton');
+        const slopeSpan = document.getElementById('slope');
+        const interceptSpan = document.getElementById('intercept');
+        const equationSpan = document.getElementById('equation');
+
+        const data = [
+            [1, 2], [2, 3], [3, 4], [4, 5], [5, 6],
+            [6, 7], [7, 8], [8, 9], [9, 10], [10, 11]
+        ];
+
+        function drawData() {
+            ctx.clearRect(0, 0, 400, 400);
+            ctx.fillStyle = 'blue';
+            data.forEach(([x, y]) => {
+                ctx.beginPath();
+                ctx.arc(x * 30, 400 - y * 30, 5, 0, 2 * Math.PI);
+                ctx.fill();
+            });
+        }
+
+        function drawLine(slope, intercept) {
+            ctx.beginPath();
+            ctx.moveTo(0, 400 - intercept * 30);
+            ctx.lineTo(400, 400 - (slope * 13 + intercept) * 30);
+            ctx.strokeStyle = 'red';
+            ctx.stroke();
+        }
+
+        // Set up Three.js scene
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(75, 400 / 400, 0.1, 1000);
+        const renderer = new THREE.WebGLRenderer({ canvas: canvas3d });
+        renderer.setSize(400, 400);
+
+        // Add lights
+        const ambientLight = new THREE.AmbientLight(0x404040);
+        scene.add(ambientLight);
+        const directionalLight = new THREE.DirectionalLight(0xffffff, 0.5);
+        directionalLight.position.set(1, 1, 1);
+        scene.add(directionalLight);
+
+        // Add 3D data points
+        const geometry = new THREE.SphereGeometry(0.1, 32, 32);
+        const material = new THREE.MeshPhongMaterial({ color: 0x0000ff });
+        data.forEach(([x, y]) => {
+            const sphere = new THREE.Mesh(geometry, material);
+            sphere.position.set(x - 5.5, y - 6.5, 0);
+            scene.add(sphere);
+        });
+
+        // Set up camera
+        camera.position.z = 15;
+
+        // Create 3D line
+        const lineGeometry = new THREE.BufferGeometry();
+        const lineMaterial = new THREE.LineBasicMaterial({ color: 0xff0000 });
+        const line = new THREE.Line(lineGeometry, lineMaterial);
+        scene.add(line);
+
+        function animate() {
+            requestAnimationFrame(animate);
+            scene.rotation.y += 0.01;
+            renderer.render(scene, camera);
+        }
+        animate();
+
+        function runGradientDescent() {
+            const learningRate = parseFloat(learningRateInput.value);
+            const iterations = parseInt(iterationsInput.value);
+            let m = 0;
+            let b = 0;
+
+            for (let i = 0; i < iterations; i++) {
+                let gradientM = 0;
+                let gradientB = 0;
+
+                for (const [x, y] of data) {
+                    const prediction = m * x + b;
+                    gradientM += -2 * x * (y - prediction);
+                    gradientB += -2 * (y - prediction);
+                }
+
+                m -= learningRate * gradientM / data.length;
+                b -= learningRate * gradientB / data.length;
+
+                if (i % 10 === 0) {
+                    drawData();
+                    drawLine(m, b);
+
+                    // Update 3D line
+                    const points = [
+                        new THREE.Vector3(-5.5, -5.5 * m + b - 6.5, 0),
+                        new THREE.Vector3(5.5, 5.5 * m + b - 6.5, 0)
+                    ];
+                    lineGeometry.setFromPoints(points);
+                }
+            }
+
+            slopeSpan.textContent = m.toFixed(4);
+            interceptSpan.textContent = b.toFixed(4);
+            equationSpan.textContent = `${m.toFixed(4)}x + ${b.toFixed(4)}`;
+        }
+
+        runButton.addEventListener('click', runGradientDescent);
+        drawData();
+    </script>
+</body>
+</html>
