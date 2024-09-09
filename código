@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Regresión Lineal 3D con Descenso de Gradiente</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        h1 {
+            text-align: center;
+        }
+        .canvas-container {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 20px;
+        }
+        canvas {
+            border: 1px solid #ccc;
+        }
+        .controls {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+        }
+        input[type="number"] {
+            width: 100%;
+            padding: 5px;
+        }
+        button {
+            width: 100%;
+            padding: 10px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .results {
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Regresión Lineal 3D con Descenso de Gradiente</h1>
+    <div class="canvas-container">
+        <canvas id="canvas2d" width="400" height="400"></canvas>
+        <canvas id="canvas3d" width="400" height="400"></canvas>
+    </div>
+    <div class="controls">
+        <div>
+            <label for="learningRate">Tasa de aprendizaje:</label>
+            <input type="number" id="learningRate" value="0.01" step="0.001" min="0.001" max="1">
+        </div>
+        <div>
+            <label for="iterations">Iteraciones:</label>
+            <input type="number" id="iterations" value="100" min="1" max="1000">
+        </div>
+    </div>
+    <button id="runButton">Ejecutar Descenso de Gradiente</button>
+    <div class="results">
+        <p>Pendiente (m): <span id="slope"></span></p>
+        <p>Intersección (b): <span id="intercept"></span></p>
+        <p>Ecuación de la línea: y = <span id="equation"></span></p>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script>
+        const canvas2d = document.getElementById('canvas2d');
+        const ctx = canvas2d.getContext('2d');
+        const canvas3d = document.getElementById('canvas3d');
+        const learningRateInput = document.getElementById('learningRate');
+        const iterationsInput = document.getElementById('iterations');
+        const runButton = document.getElementById('runButton');
+        const slopeSpan = document.getElementById('slope');
+        const interceptSpan = document.getElementById('intercept');
+        const equationSpan = document.getElementById('equation');
+
+        const data = [
+            [1, 2], [2, 3], [3, 4], [4, 5], [5, 6],
+            [6, 7], [7, 8], [8, 9], [9, 10], [10, 11]
+        ];
+
+        function drawData() {
+            ctx.clearRect(0, 0, 400, 400);
+            ctx.fillStyle = 'blue';
+            data.forEach(([x, y]) => {
+                ctx.beginPath();
+                ctx.arc(x * 30, 400 - y * 30, 5, 0, 2 * Math.PI);
+                ctx.fill();
+            });
+        }
